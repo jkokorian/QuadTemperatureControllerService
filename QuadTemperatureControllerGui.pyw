@@ -26,7 +26,8 @@ class EnterKeySpinbox(pg.SpinBox):
         pg.SpinBox.__init__(self,parent=parent, value=value, **kwargs)
     
     def keyPressEvent(self, event):
-        self.enterKeyPressed.emit()
+        if event.key() == Qt.Key_Return: 
+            self.enterKeyPressed.emit()
         pg.SpinBox.keyPressEvent(self, event)
         
     def focusOutEvent(self, event):
@@ -34,84 +35,75 @@ class EnterKeySpinbox(pg.SpinBox):
         QTimer.singleShot(1000,lambda: self.delayedFocusLost.emit())
         
 
-class SetpointWidget(QWidget):
+class SetpointEditor(QWidget):
     setpointChangeRequested = pyqtSignal(float)
 
     def __init__(self, setpoint_name, parent=None, **pg_spinbox_kwargs):
         QWidget.__init__(self,parent)
 
         #create widgets
-        setpointNameLabel = QLabel(setpoint_name,parent=self)
-        self.setpointEditor = EnterKeySpinbox(parent=self, **pg_spinbox_kwargs)
-        self.setpointEditor.setKeyboardTracking(False)
-        self.okButton = QToolButton()
-        self.okButton.setText("ok")
-        self.cancelButton = QToolButton()
-        self.cancelButton.setText("no")
-
-        
-        for btn in [self.okButton,self.cancelButton]:
-            font = btn.font()
-            font.setPointSize(7)
-            btn.setFont(font)
-            
+        self.setpointName = setpoint_name
+        self.setpointLabel = QLabel(setpoint_name,parent=self)
+        self.spinbox = EnterKeySpinbox(parent=self, **pg_spinbox_kwargs)
+        self.spinbox.setKeyboardTracking(False)
+        self.setButton = QToolButton()
+        self.setButton.setText("set")
         
         #create properties
-        self.__hardwareSetpoint = 0.0
+        self.__actualSetpoint = 0.0
         self.__requestedSetpoint = 0.0
 
-
         #create layout
-        buttonLayout = QHBoxLayout()
-        buttonLayout.addWidget(self.okButton)
-        buttonLayout.addWidget(self.cancelButton)
 
         hlayout = QHBoxLayout()
-        hlayout.addWidget(self.setpointEditor)        
-        hlayout.addLayout(buttonLayout)
+        hlayout.addWidget(self.spinbox)        
+        hlayout.addWidget(self.setButton)
         
         vlayout = QVBoxLayout()
-        vlayout.addWidget(setpointNameLabel)
+        vlayout.addWidget(self.setpointLabel)
         vlayout.addLayout(hlayout)
 
         self.setLayout(vlayout)
 
         #register signals
-        self.okButton.clicked.connect(self._setRequestedSetpoint)
-        self.cancelButton.clicked.connect(self._revertRequestedSetpoint)
-        self.setpointEditor.delayedFocusLost.connect(self._setRequestedSetpoint)
-        self.setpointEditor.enterKeyPressed.connect(self._setRequestedSetpoint)
+        self.setButton.clicked.connect(self._setpointChanging)
+        self.spinbox.delayedFocusLost.connect(self._setpointChanging)
+        self.spinbox.enterKeyPressed.connect(self._setpointChanging)
 
         self.initializeValues()
 
     def initializeValues(self):
-        self._updateRequestedSetpoint()
+        pass
         
 
     def _revertRequestedSetpoint(self):
-        self.setpointEditor.setValue(self.getRequestedSetpoint())
+        self.spinbox.setValue(self.getRequestedSetpoint())
 
     
-    def setHardwareSetpoint(self,value):
-        if value != self.getHardwareSetpoint():
-            self.__hardwareSetpoint = value
+    def setActualSetpoint(self,value):
+        if value != self.getActualSetpoint():
+            self.__actualSetpoint = value
             
-        self.setpointEditor.setValue(value)
+        self.setpointLabel.setText("%s: <b>%0.1f</b>" % (self.setpointName, value))
         
     
-    def getHardwareSetpoint(self):
-        return self.__hardwareSetpoint
+    def getActualSetpoint(self):
+        return self.__actualSetpoint
         
-        
+    def _setpointChanging(self):
+        self._setRequestedSetpoint(self.spinbox.value())
+    
     def _setRequestedSetpoint(self,value):
         self.__requestedSetpoint = value
-        self._updateBackgroundColor()
+        #self._updateBackgroundColor()
         self.setpointChangeRequested.emit(value)
+        print "setpoint change requested", value
         
     def getRequestedSetpoint(self):
         return self.__requestedSetpoint
     
         
+    
     def _updateBackgroundColor(self):
         palette = QPalette();
         if (self.isSynchronized):
@@ -119,7 +111,7 @@ class SetpointWidget(QWidget):
         else:
             palette.setColor(QPalette.Base,Qt.red);
             
-        self.setpointEditor.setPalette(palette);
+        self.spinbox.setPalette(palette);
 
 
     @property
@@ -151,7 +143,7 @@ class TemperatureControllerWidget(QGroupBox):
         self.name = name
         layout = QVBoxLayout()
         self.actualTemperatureDisplay = QLabel(parent=self)
-        self.setpointEditor = SetpointWidget("Setpoint",suffix=u'°C', siPrefix=True, dec=True, step=0.1, minStep=0.1)
+        self.setpointEditor = SetpointEditor("Setpoint",suffix=u'°C', siPrefix=True, dec=True, step=0.1, minStep=0.1)
         layout.addWidget(self.actualTemperatureDisplay)
         layout.addWidget(self.setpointEditor)
 
@@ -174,7 +166,7 @@ class TemperatureControllerWidget(QGroupBox):
         self.actualTemperatureDisplay.setText(u"process temperature: <b>%0.1f °C</b>" % value)
         
     def updateActualSetpoint(self,value):
-        self.setpointEditor.setHardwareSetpoint(value)
+        self.setpointEditor.setActualSetpoint(value)
         
     def hardwareThread_hardwareStateChanged(self,state):
         self.updateActualTemperature(state['pv'])
