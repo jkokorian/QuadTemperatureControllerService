@@ -1,0 +1,1 @@
+start pythonw QuadTemperatureControllerGui.pyw

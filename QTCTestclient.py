@@ -8,12 +8,11 @@ ctx = zmq.Context()
 
 rpc_client = RPCClient(
     JSONRPCProtocol(),
-    ZmqClientTransport.create(ctx, 'tcp://127.0.0.1:5060')
+    ZmqClientTransport.create(ctx, 'tcp://127.0.0.1:5062')
 )
 
 
 remote_server = rpc_client.get_proxy()
 
 for i in range(1000):
-    for tc in ["tc" + str(i) for i in [1,2,3,4]]:
-        print remote_server.get_temperature_controller_state(tc)
+    print remote_server.get_pv()

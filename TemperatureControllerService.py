@@ -1,5 +1,5 @@
 import serial
-from hardwareServices import QuadTemperatureController
+from hardwareServices import TemperatureControllerService
 import argparse
 import zmq
 
@@ -19,23 +19,21 @@ def portNameToInt(portName):
 
 if __name__=="__main__":
     
+    system("Title "+ "Device Service: Temperature Controller")    
 
-    parser = argparse.ArgumentParser(description="Device service for the Quad temperature controller unit")
-    parser.add_argument("--device-port","-d",dest="serialPortName",type=str,default="COM5")
-    parser.add_argument("--baud-rate","-b",dest="baudrate",type=int,default=9600)
-    parser.add_argument("--service-port","-p",dest="servicePort",type=int,default=5060)
+    parser = argparse.ArgumentParser(description="Temperature controller unit")
+    parser.add_argument("--modbus-service",dest="modbusService",type=str)
+    parser.add_argument("--device-id",dest="deviceId",type=str)
+    parser.add_argument("--service-port","-p",dest="servicePort",type=int,default=5070)
     parser.add_argument("--service-ip",dest="serviceIP",type=str,default="127.0.0.1")
-    parser.add_argument("--fake",dest="fake",type=bool,default=False)
     
     args = parser.parse_args()
-    system("Title "+ "%sDevice Service: Quad Temperature Controller" % ("" if not args.fake else "FAKE "))
         
-    qtc = QuadTemperatureController(args.serialPortName,args.baudrate,fake=args.fake)
+    ctx = zmq.Context()
+    tcService = TemperatureControllerService(args.modbusService, args.deviceId, ctx)
     
     dispatcher = RPCDispatcher()
-    dispatcher.register_instance(qtc)
-    
-    ctx = zmq.Context()
+    dispatcher.register_instance(tcService)
     
     endpoint = 'tcp://%s:%i' % (args.serviceIP,args.servicePort)
     transport = ZmqServerTransport.create(ctx, endpoint)
