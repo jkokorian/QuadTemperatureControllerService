@@ -57,7 +57,9 @@ class QuadTemperatureController(object):
     def set_remote_setpoint(self, device_id, value):
         return self._tcDict[device_id].set_remote_setpoint(value)
 
-
+    @public
+    def get_status(self, device_id):
+        return self._tcDict[device_id].get_status()
 
     
 class TemperatureControllerService(object):
@@ -101,3 +103,7 @@ class TemperatureControllerService(object):
     @public
     def set_remote_setpoint(self,value):
         return self.modbus_proxy.set_remote_setpoint(self.device_id, value);
+        
+    @public
+    def get_status(self):
+        return self.modbus_proxy.get_status(self.device_id)

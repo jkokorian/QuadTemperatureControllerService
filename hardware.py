@@ -32,6 +32,16 @@ class Eurotherm3216Spoof():
 
     def set_remote_setpoint(self,value):
         self.remote_setpoint = value
+        
+    def get_status(self):
+        if self.setpoint1 < 0:
+            return {'status': 'error',
+                    'error': True,
+                    'message': "The spoof hardware proxy raises an error if setpoint1 is set below zero."}
+        else:
+            return {'status': 'ok',
+                    'error': False,
+                    'message': ""}
 
 
 class Eurotherm3216(minimalmodbus.Instrument):
@@ -78,4 +88,9 @@ class Eurotherm3216(minimalmodbus.Instrument):
 
     def set_remote_setpoint(self,value):
         self.write_register(26,value)
+        
+    def get_status(self):
+        return {'status': 'online',
+                'error': False,
+                'message': ''}
     

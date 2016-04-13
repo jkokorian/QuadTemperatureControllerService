@@ -168,9 +168,21 @@ class TemperatureControllerWidget(QGroupBox):
     def updateActualSetpoint(self,value):
         self.setpointEditor.setActualSetpoint(value)
         
+    def updateHardwareStatus(self,status):
+        
+        if status['error']==True:
+            self.setStyleSheet("QGroupBox {  border: 1px solid red;}")
+            
+            
+        if status['error']==False:
+            self.setStyleSheet("QGroupBox {  border: 1px solid black;}")
+            
+        
     def hardwareThread_hardwareStateChanged(self,state):
         self.updateActualTemperature(state['pv'])
         self.updateActualSetpoint(state['setpoint1'])
+        self.updateHardwareStatus(state['status'])
+        
         
 
     def closeEvent(self, event):
@@ -178,7 +190,6 @@ class TemperatureControllerWidget(QGroupBox):
         self.hardwareThread.terminate()
         event.accept()
 
-                
             
 
 class QuadTemperatureControllerWidget(QWidget):
